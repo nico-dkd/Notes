@@ -1,5 +1,6 @@
 import FluentSQLite
 import Vapor
+import Authentication
 
 /// Called before your application initializes.
 public func configure(_ config: inout Config, _ env: inout Environment, _ services: inout Services) throws {
@@ -16,17 +17,25 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     // middlewares.use(FileMiddleware.self) // Serves files from `Public/` directory
     middlewares.use(ErrorMiddleware.self) // Catches errors and converts to HTTP response
     services.register(middlewares)
-
-    // Configure a SQLite database
-    let sqlite = try SQLiteDatabase(storage: .memory)
-
-    // Register the configured SQLite database to the database config.
-    var databases = DatabasesConfig()
-    databases.add(database: sqlite, as: .sqlite)
-    services.register(databases)
-
+    
+    // Configure directory file-system
+    let directoryConfig = DirectoryConfig.detect()
+    services.register(directoryConfig)
+    
+    // Configure FluentSQLite
+    try services.register(FluentSQLiteProvider())
+    try services.register(AuthenticationProvider())
+    // Configure file to save files to
+    var databaseConfig = DatabasesConfig()
+    let db = try SQLiteDatabase(storage: .file(path: "\(directoryConfig.workDir)Notes.db"))
+    databaseConfig.add(database: db, as: .sqlite) // attaches database to this variable (.sqlite) to refer to it in the future easily
+    services.register(databaseConfig)
+    
     // Configure migrations
     var migrations = MigrationConfig()
-    migrations.add(model: Todo.self, database: .sqlite)
+    migrations.add(model: User.self, database: .sqlite)
+    migrations.add(migration: AdminUser.self, database: .sqlite)
+    migrations.add(model: Token.self, database: .sqlite)
+    migrations.add(model: Note.self, database: .sqlite)
     services.register(migrations)
 }
