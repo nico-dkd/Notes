@@ -9,39 +9,23 @@ import Foundation
 import Vapor
 import Crypto
 
-final class UserController: RouteCollection {
-    
-    func boot(router: Router) throws {
-        
-        let usersRoute = router.grouped("api", "users")
-        
-        let userNoteRoute = router.grouped("api", "users", "notes")
-        
-        let basicAuthMiddleware = User.basicAuthMiddleware(using: BCryptDigest())
-        let guardAuthMiddleware = User.guardAuthMiddleware()
-        
-        let basicProtected = usersRoute.grouped(basicAuthMiddleware, guardAuthMiddleware)
-        
-        basicProtected.post("login", use: loginHandler)
-        
-        let tokenAuthMiddleware = User.tokenAuthMiddleware()
-        let tokenProtected = usersRoute.grouped(tokenAuthMiddleware, guardAuthMiddleware)
-        
-        let noteTokenProtected = userNoteRoute.grouped(tokenAuthMiddleware, guardAuthMiddleware)
-        
-        tokenProtected.get(use: getAllHandler)
-        tokenProtected.get(User.parameter, use: getOneHandler)
-        tokenProtected.put(User.parameter, use: updateHandler)
-        tokenProtected.post(use: createHandler)
-        tokenProtected.delete(User.parameter, use: deleteHandler)
-        noteTokenProtected.get(use: getNotes)
-    }
+final class UserController {
     
     func loginHandler(_ req: Request) throws -> Future<Token> {
         
         let user = try req.requireAuthenticated(User.self)
         let token = try Token.generate(for: user)
         return token.create(on: req)
+    }
+    
+    func logout(_ req: Request) throws -> Future<HTTPResponse> {
+    
+        let user = try req.requireAuthenticated(User.self)
+      return try Token
+        .query(on: req)
+        .filter(\Token.userID, .equal, user.requireID())
+        .delete()
+        .transform(to: HTTPResponse(status: .ok))
     }
     
     func createHandler(_ req: Request) throws -> Future<User> {

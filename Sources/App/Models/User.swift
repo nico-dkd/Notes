@@ -104,6 +104,8 @@ struct AdminUser: Migration {
     }
 }
 
+extension User: SessionAuthenticatable {}
+
 extension User: TokenAuthenticatable {
     typealias TokenType = Token
 }
