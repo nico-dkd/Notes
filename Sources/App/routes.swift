@@ -5,23 +5,23 @@ import Crypto
 public func routes(_ router: Router) throws {
   
     let userController = UserController()
-
+    
     let userRoute = router.grouped("api", "users")
     
     let userNoteRoute = router.grouped("api", "users", "notes")
     
     let basicAuthMiddleware = User.basicAuthMiddleware(using: BCryptDigest())
-           let guardAuthMiddleware = User.guardAuthMiddleware()
-           
-           let basicProtected = userRoute.grouped(basicAuthMiddleware, guardAuthMiddleware)
-           
+    let guardAuthMiddleware = User.guardAuthMiddleware()
+    
+    let basicProtected = userRoute.grouped(basicAuthMiddleware, guardAuthMiddleware)
+    
     basicProtected.post("login", use: userController.loginHandler)
-         
-         let tokenAuthMiddleware = User.tokenAuthMiddleware()
-         let tokenProtected = userRoute.grouped(tokenAuthMiddleware, guardAuthMiddleware)
-         
-         let noteTokenProtected = userNoteRoute.grouped(tokenAuthMiddleware, guardAuthMiddleware)
-         
+    
+    let tokenAuthMiddleware = User.tokenAuthMiddleware()
+    let tokenProtected = userRoute.grouped(tokenAuthMiddleware, guardAuthMiddleware)
+    
+    let noteTokenProtected = userNoteRoute.grouped(tokenAuthMiddleware, guardAuthMiddleware)
+    
     tokenProtected.get(use: userController.getAllHandler)
     tokenProtected.get(User.parameter, use: userController.getOneHandler)
     tokenProtected.put(User.parameter, use: userController.updateHandler)
@@ -31,8 +31,14 @@ public func routes(_ router: Router) throws {
     noteTokenProtected.get(use: userController.getNotes)
     
     
-    let tokenAuthMiddelware = User.tokenAuthMiddleware()
-    let tokenAuthGroup = router.grouped(tokenAuthMiddelware)
+    let noteRoute = router.grouped("api","note")
     
-    tokenAuthGroup.post("api/note", use: NoteController.createNote)
+    let tokenAuthMiddelware = User.tokenAuthMiddleware()
+    let tokenAuthGroup = noteRoute.grouped(tokenAuthMiddelware)
+    
+    let noteController = NoteController()
+    
+    tokenAuthGroup.post(use: noteController.createNote)
+    tokenAuthGroup.delete(use: noteController.deleteHandler)
+    tokenAuthGroup.delete(Note.parameter, use: noteController.deleteHandler)
 }

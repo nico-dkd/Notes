@@ -10,7 +10,7 @@ import Vapor
 
 final class NoteController { //: RouteCollection {
     
-     static func createNote(_ req: Request) throws -> Future<Note> {
+     func createNote(_ req: Request) throws -> Future<Note> {
                 
         let user = try req.requireAuthenticated(User.self)
                 
@@ -24,6 +24,14 @@ final class NoteController { //: RouteCollection {
             let note = Note(headline: postableNote.headline, story: postableNote.story, userID: id)
 
             return note.create(on: req)
+        }
+    }
+    
+    func deleteHandler(_ req: Request) throws -> Future<HTTPStatus> {
+    
+        return try req.parameters.next(Note.self).flatMap { note in
+            
+            return note.delete(on: req).transform(to: HTTPStatus.noContent)
         }
     }
 }
